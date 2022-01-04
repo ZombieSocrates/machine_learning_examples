@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy.stats import norm
 
 
@@ -33,3 +32,9 @@ norm.cdf(160, loc=mu, scale=sd)
 
 # you are 180 cm tall, what is the probability that someone is taller than you?
 1 - norm.cdf(180, loc=mu, scale=sd)
+
+
+if __name__ == "__main__":
+
+	import pdb 
+	pdb.set_trace()
