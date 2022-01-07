@@ -42,7 +42,8 @@ class EpsilonGreedyExperiment(object):
 
 
     def __init__(self, machine_win_rates: List[float], eps: float):
-        self.eps = eps 
+        self.eps = eps
+        self.eps_init = eps 
         self.machines = [SlotMachine(true_win_rate = p) for p in machine_win_rates]
         self.N_trials = 0
         self.N_explores = 0
@@ -59,6 +60,23 @@ class EpsilonGreedyExperiment(object):
         return sorted_machines[-1]
 
 
+    def decay_epsilon(self, decay_type: List[str]):
+        '''
+        Arithmetic implies eps = max(eps_init - k*N, min_eps)
+        Exponential implies eps = eps_init * alpha ^ N
+        '''
+        if decay_type not in ["Arithmetic", "Exponential"]:
+            raise NotImplementedError
+        elif decay_type == "Arithmetic":
+            min_eps = 1e-6
+            scaling = 1e-5
+            decayed = self.eps_init - scaling * self.N_trials
+            self.eps = max(decayed, min_eps)
+        else:
+            alpha = 0.9999
+            self.eps = self.eps_init * alpha**self.N_trials
+
+
     def progress_update(self):
         for i, m in enumerate(self.machines):
             print(f"Machine {i + 1}")
@@ -66,7 +84,7 @@ class EpsilonGreedyExperiment(object):
             print("------"*5, "\n")
 
 
-    def run_trial(self):
+    def run_trial(self, eps_decay_type:str = None):
         eps_draw = np.random.uniform(size = 1)[0]
         if self.N_trials == 0 or eps_draw <= self.eps:
             machine = self.choose_random_machine()
@@ -76,6 +94,8 @@ class EpsilonGreedyExperiment(object):
             self.N_exploits += 1
         machine.play()
         self.N_trials += 1
+        if eps_decay_type is not None:
+            self.decay_epsilon(decay_type = eps_decay_type)
 
 
     def count_optimal_plays(self):
@@ -93,21 +113,28 @@ class EpsilonGreedyExperiment(object):
         return int(wins)
 
 
-    def run_experiment(self, max_trials: float, update_every: int):
+    def run_experiment(self, max_trials: float, update_every: int, 
+        eps_decay_type:str = None):
         while self.N_trials < max_trials:
-            self.run_trial()
+            self.run_trial(eps_decay_type = eps_decay_type)
             if self.N_trials % update_every == 0:
+                print(f"PROGRESS AT {self.N_trials} trials")
                 self.progress_update()
+                if eps_decay_type is not None:
+                    print(f"Current epsilon: {self.eps:0.10}")
+                print("*****"*10,"\n")
         print("Experiment Complete! Saving results and clearing data.")
         print(f"Number of times explored: {self.N_explores}")
         print(f"Number of times exploited: {self.N_exploits}")
         print(f"Number of optimal plays: {self.count_optimal_plays()}")
         print(f"Number of winning plays: {self.count_total_wins()}")
-        self.plot_experiment_results()
+        if eps_decay_type is not None:
+            print(f"Final value of epsilon: {self.eps:0.10}")
+        self.plot_experiment_results(eps_decay_type = eps_decay_type)
         self.reset_experiment()
 
 
-    def plot_experiment_results(self, lbl_pad = 10):
+    def plot_experiment_results(self, eps_decay_type:str=None, lbl_pad:int = 10):
         plays_per_machine = [x.N_plays for x in self.machines]
         win_rates = [x.win_rate for x in self.machines]
         coords = [i + 1 for i in range(len(win_rates))]
@@ -121,7 +148,10 @@ class EpsilonGreedyExperiment(object):
             ax.text(x = coords[idx], y = plays_per_machine[idx] + lbl_pad, 
                 s = f"{wr:0.4%}", ha = "center")
         total_trials = sum(plays_per_machine)
-        plt.title(f"Epsilon Greedy: {total_trials} Trials; {self.eps:0.2%} Base Epsilon")
+        the_title = f"Epsilon Greedy: {total_trials} Trials; {self.eps_init:0.2%} Base Epsilon"
+        if eps_decay_type is not None:
+            the_title = f"{the_title}; {eps_decay_type} Epsilon Decay"
+        plt.title(the_title)
         plt.tight_layout()
         save_path = str(self.get_experiment_save_path())
         print(f"Saving details to {save_path}")
@@ -149,9 +179,10 @@ class EpsilonGreedyExperiment(object):
 
 if __name__ == "__main__":
 
-    probas = [0.15, 0.58, 0.22, 0.09]
-    epsilon = 0.05
+    probas = [0.2, 0.4, 0.8, 0.6]
+    epsilon = 0.10
     max_trials = 10000
     epg_lab = EpsilonGreedyExperiment(machine_win_rates = probas, eps = epsilon)
-    epg_lab.run_experiment(max_trials = max_trials, update_every = 1000)
+    epg_lab.run_experiment(max_trials = max_trials, update_every = 1000,
+        eps_decay_type = "Exponential")
 
