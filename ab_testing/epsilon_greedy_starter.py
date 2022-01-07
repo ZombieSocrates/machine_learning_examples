@@ -45,6 +45,8 @@ class EpsilonGreedyExperiment(object):
         self.eps = eps 
         self.machines = [SlotMachine(true_win_rate = p) for p in machine_win_rates]
         self.N_trials = 0
+        self.N_explores = 0
+        self.N_exploits = 0
 
 
     def choose_random_machine(self):
@@ -68,10 +70,27 @@ class EpsilonGreedyExperiment(object):
         eps_draw = np.random.uniform(size = 1)[0]
         if self.N_trials == 0 or eps_draw <= self.eps:
             machine = self.choose_random_machine()
+            self.N_explores += 1
         else:
             machine = self.choose_best_machine()
+            self.N_exploits += 1
         machine.play()
         self.N_trials += 1
+
+
+    def count_optimal_plays(self):
+        true_win_rate_sort = lambda x: x.true_win_rate
+        sorted_machines = sorted(self.machines, key = true_win_rate_sort)
+        best_machine = sorted_machines[-1]
+        return best_machine.N_plays
+
+
+    def count_total_wins(self):
+        wins = 0
+        for m in self.machines:
+            w = m.win_rate * m.N_plays 
+            wins += w 
+        return int(wins)
 
 
     def run_experiment(self, max_trials: float, update_every: int):
@@ -79,7 +98,11 @@ class EpsilonGreedyExperiment(object):
             self.run_trial()
             if self.N_trials % update_every == 0:
                 self.progress_update()
-        print("Experiment Complete! Saving results and clearing data.") 
+        print("Experiment Complete! Saving results and clearing data.")
+        print(f"Number of times explored: {self.N_explores}")
+        print(f"Number of times exploited: {self.N_exploits}")
+        print(f"Number of optimal plays: {self.count_optimal_plays()}")
+        print(f"Number of winning plays: {self.count_total_wins()}")
         self.plot_experiment_results()
         self.reset_experiment()
 
@@ -101,7 +124,7 @@ class EpsilonGreedyExperiment(object):
         plt.title(f"Epsilon Greedy: {total_trials} Trials; {self.eps:0.2%} Base Epsilon")
         plt.tight_layout()
         save_path = str(self.get_experiment_save_path())
-        print(save_path)
+        print(f"Saving details to {save_path}")
         plt.savefig(save_path)
 
 
@@ -116,7 +139,9 @@ class EpsilonGreedyExperiment(object):
 
 
     def reset_experiment(self):
-        self.N_trials = 0 
+        self.N_trials = 0
+        self.N_explores = 0
+        self.N_exploits = 0 
         for machine in self.machines:
             machine.N_plays = 0 
             machine.win_rate = None
@@ -124,7 +149,7 @@ class EpsilonGreedyExperiment(object):
 
 if __name__ == "__main__":
 
-    probas = [0.2, 0.5, 0.8]
+    probas = [0.15, 0.58, 0.22, 0.09]
     epsilon = 0.05
     max_trials = 10000
     epg_lab = EpsilonGreedyExperiment(machine_win_rates = probas, eps = epsilon)
