@@ -1,81 +1,158 @@
-# https://deeplearningcourses.com/c/artificial-intelligence-reinforcement-learning-in-python
-# https://www.udemy.com/artificial-intelligence-reinforcement-learning-in-python
-# https://books.google.ca/books?id=_ATpBwAAQBAJ&lpg=PA201&ots=rinZM8jQ6s&dq=hoeffding%20bound%20gives%20probability%20%22greater%20than%201%22&pg=PA201#v=onepage&q&f=false
-from __future__ import print_function, division
-from builtins import range
-# Note: you may need to update your version of future
-# sudo pip install -U future
+import pathlib 
+import numpy as np   
 
-import numpy as np
-import matplotlib.pyplot as plt
+from matplotlib import pyplot as plt
+from typing import List
 
 
-NUM_TRIALS = 100000
-EPS = 0.1
-BANDIT_PROBABILITIES = [0.2, 0.5, 0.75]
+class SlotMachine(object):
+
+    '''lol this is more or less the same as the eps greedy slot
+
+    TODO: allow this to support both real and binary valued rewards
+
+    '''
+    def __init__(self, true_win_rate: float):
+        self.true_win_rate = true_win_rate
+        self.N_plays = 0 
+        self.win_rate = None  
 
 
-class Bandit:
-  def __init__(self, p):
-    # p: the win rate
-    self.p = p
-    self.p_estimate = 0.
-    self.N = 0. # num samples collected so far
-
-  def pull(self):
-    # draw a 1 with probability p
-    return np.random.random() < self.p
-
-  def update(self, x):
-    self.N += 1.
-    self.p_estimate = ((self.N - 1)*self.p_estimate + x) / self.N
-
-
-def ucb(mean, n, nj):
-  return # TODO
-
-
-def run_experiment():
-  bandits = [Bandit(p) for p in BANDIT_PROBABILITIES]
-  rewards = np.empty(NUM_TRIALS)
-  total_plays = 0
-
-  # initialization: play each bandit once
-  for j in range(len(bandits)):
-    x = bandits[j].pull()
-    total_plays += 1
-    bandits[j].update(x)
+    def pull_arm(self):
+        pull_val = np.random.uniform(size = 1)[0]
+        return 1 if pull_val <= self.true_win_rate else 0 
   
-  for i in range(NUM_TRIALS):
-    j = # TODO
-    x = bandits[j].pull()
-    total_plays += 1
-    bandits[j].update(x)
 
-    # for the plot
-    rewards[i] = x
-  cumulative_average = np.cumsum(rewards) / (np.arange(NUM_TRIALS) + 1)
+    def update_win_rate(self, value):
+        self.N_plays += 1 
+        prior = 0 if self.win_rate is None else self.win_rate
+        updated =  1 / self.N_plays * (value + (self.N_plays - 1) * prior)
+        self.win_rate = updated
 
-  # plot moving average ctr
-  plt.plot(cumulative_average)
-  plt.plot(np.ones(NUM_TRIALS)*np.max(BANDIT_PROBABILITIES))
-  plt.xscale('log')
-  plt.show()
 
-  # plot moving average ctr linear
-  plt.plot(cumulative_average)
-  plt.plot(np.ones(NUM_TRIALS)*np.max(BANDIT_PROBABILITIES))
-  plt.show()
+    def play(self):
+        pull_val = self.pull_arm()
+        self.update_win_rate(value = pull_val)
 
-  for b in bandits:
-    print(b.p_estimate)
 
-  print("total reward earned:", rewards.sum())
-  print("overall win rate:", rewards.sum() / NUM_TRIALS)
-  print("num times selected each bandit:", [b.N for b in bandits])
+    def print_summary(self, show_true_rate = False, plays_to_exclude:int = 0):
+        print(f"\tTimes played: {self.N_plays - plays_to_exclude}")
+        if self.win_rate is not None:
+            print(f"\tCurrent Win Rate: {self.win_rate:0.4%}")
+        if show_true_rate:
+            print(f"\tTrue Win Rate: {self.true_win_rate:0.2%}")
 
-  return cumulative_average
 
-if __name__ == '__main__':
-  run_experiment()
+class UCBOneExperiment(object):
 
+    def __init__(self, machine_win_rates: List[float]):
+        self.machines = [SlotMachine(true_win_rate = p) for p in machine_win_rates]
+        self.N_trials = 0
+
+        
+    def get_ucb_for_machine(self, machine):
+        curr_estimate = machine.win_rate 
+        error_term = np.sqrt(2 * np.log(self.N_trials) / machine.N_plays)
+        return curr_estimate + error_term
+
+
+    def choose_best_machine(self):
+        ucb_sort = lambda x: self.get_ucb_for_machine(x)
+        sorted_machines = sorted(self.machines, key = ucb_sort)
+        return sorted_machines[-1]
+
+
+    def progress_update(self):
+        for i, m in enumerate(self.machines):
+            print(f"Machine {i + 1}")
+            m.print_summary(show_true_rate = False)
+            current_ucb = self.get_ucb_for_machine(m)
+            print(f"\tCurrent UCB for true mean: {current_ucb:0.4%}") 
+            print("------"*5, "\n")
+
+
+    def run_trial(self):
+        if self.N_trials < len(self.machines):
+            machine = self.machines[self.N_trials]
+        else:
+            machine = self.choose_best_machine()
+        machine.play()
+        self.N_trials += 1
+
+
+    def count_optimal_plays(self):
+        true_win_rate_sort = lambda x: x.true_win_rate
+        sorted_machines = sorted(self.machines, key = true_win_rate_sort)
+        best_machine = sorted_machines[-1]
+        return best_machine.N_plays
+
+
+    def count_total_wins(self):
+        wins = 0
+        for m in self.machines:
+            w = m.win_rate * (m.N_plays - 1)
+            wins += w 
+        return int(wins)
+
+
+    def run_experiment(self, max_trials: float, update_every: int):
+        while self.N_trials < max_trials:
+            self.run_trial()
+            if self.N_trials % update_every == 0:
+                print(f"PROGRESS AT {self.N_trials} trials")
+                self.progress_update()
+                print("*****"*10,"\n")
+        print("Experiment Complete! Saving results and clearing data.")
+        print(f"Number of optimal plays: {self.count_optimal_plays()}")
+        print(f"Number of winning plays: {self.count_total_wins()}")
+        self.plot_experiment_results()
+        self.reset_experiment()
+
+
+    def plot_experiment_results(self, lbl_pad:int = 10):
+        plays_per_machine = [x.N_plays for x in self.machines]
+        win_rates = [x.win_rate for x in self.machines]
+        coords = [i + 1 for i in range(len(win_rates))]
+        fig, ax = plt.subplots(figsize = (10, 10))
+        plt.bar(x = coords, height = plays_per_machine)
+        ax.set_xticks(coords)
+        ax.set_xticklabels([f"Machine {i}" for i in coords], rotation = 65,
+            ha = "right")
+        ax.set_ylabel("Number of Plays")
+        for idx, wr in enumerate(win_rates):
+            ax.text(x = coords[idx], y = plays_per_machine[idx] + lbl_pad, 
+                s = f"{wr:0.4%}", ha = "center")
+        total_trials = sum(plays_per_machine)
+        the_title = f"Upper Confidence Bound 1: {total_trials} Trials"
+        plt.title(the_title)
+        plt.tight_layout()
+        save_path = str(self.get_experiment_save_path())
+        print(f"Saving details to {save_path}")
+        plt.savefig(save_path)
+
+
+    def get_experiment_save_path(self, base_dir = "viz/ucb_one", ext = ".png"):
+        base_pth = pathlib.Path(base_dir)
+        if not base_pth.exists():
+            base_pth.mkdir(exist_ok = True, parents = True)
+        exp_index = len([k for k in base_pth.glob(f"*{ext}")])
+        next_index = str(exp_index + 1).rjust(2, "0")
+        exp_file = base_pth / f"experiment_{next_index}_results{ext}"
+        return exp_file
+
+
+    def reset_experiment(self):
+        self.N_trials = 0
+        for machine in self.machines:
+            machine.N_plays = 0
+            machine.win_rate = None
+
+ 
+
+
+if __name__ == "__main__":
+
+    probas = [0.01, 0.08, 0.02, 0.05]
+    max_trials = 10000
+    ucb1_lab = UCBOneExperiment(machine_win_rates = probas)
+    ucb1_lab.run_experiment(max_trials = max_trials, update_every = 1000)   

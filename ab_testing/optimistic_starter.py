@@ -87,7 +87,6 @@ class OptimisticInitialExperiment(object):
 
 
     def run_trial(self):
-        eps_draw = np.random.uniform(size = 1)[0]
         if self.N_trials == 0:
             machine = self.choose_random_machine()
         else:
