@@ -70,8 +70,8 @@ class ThompsonSamplingExperiment(object):
 
 
     def choose_best_machine(self):
-        ucb_sort = lambda x: self.get_thompson_sample(x)
-        sorted_machines = sorted(self.machines, key = ucb_sort)
+        thompson_sort = lambda x: self.get_thompson_sample(x)
+        sorted_machines = sorted(self.machines, key = thompson_sort)
         return sorted_machines[-1]
 
 
