@@ -90,7 +90,7 @@ class UCBOneExperiment(object):
     def count_total_wins(self):
         wins = 0
         for m in self.machines:
-            w = m.win_rate * (m.N_plays - 1)
+            w = m.win_rate * m.N_plays
             wins += w 
         return int(wins)
 

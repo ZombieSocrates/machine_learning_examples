@@ -102,10 +102,10 @@ class OptimisticInitialExperiment(object):
         return best_machine.N_plays
 
 
-    def count_total_wins(self):
+    def count_total_wins(self, play_discount:int = 1):
         wins = 0
         for m in self.machines:
-            w = m.win_rate * (m.N_plays - 1)
+            w = m.win_rate * (m.N_plays - play_discount)
             wins += w 
         return int(wins)
 
