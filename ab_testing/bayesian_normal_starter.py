@@ -198,9 +198,9 @@ class GaussianThompsonSamplingExperiment(object):
 
 if __name__ == "__main__":
 
-    param_pairs = [(3, 0.5), (4, 0.25), (5, 0.5)]
     tau_val = 1
-    max_trials = 10000
+    param_pairs = [(1, 1), (2, 1), (3, 1)]
+    max_trials = 1000
     tsampling_lab = GaussianThompsonSamplingExperiment(machine_params = param_pairs,
         known_tau = tau_val)
-    tsampling_lab.run_experiment(max_trials = max_trials, update_every = 1000)   
+    tsampling_lab.run_experiment(max_trials = max_trials, update_every = 100)   
