@@ -167,7 +167,7 @@ class ThompsonSamplingExperiment(object):
 
 if __name__ == "__main__":
 
-    probas = [0.1, 0.25, 0.45, 0.05]
+    probas = [0.05, 0.33, 0.20, 0.10]
     max_trials = 10000
     tsampling_lab = ThompsonSamplingExperiment(machine_win_rates = probas)
     tsampling_lab.run_experiment(max_trials = max_trials, update_every = 1000)   

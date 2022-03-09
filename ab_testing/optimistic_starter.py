@@ -176,7 +176,7 @@ class OptimisticInitialExperiment(object):
 
 if __name__ == "__main__":
 
-    probas = [0.5, 0.3, 0.55, 0.72, 0.19]
+    probas = [0.05, 0.33, 0.20, 0.10]
     max_trials = 10000
     op_init_lab = OptimisticInitialExperiment(machine_win_rates = probas)
     op_init_lab.run_experiment(max_trials = max_trials, update_every = 1000,

@@ -152,7 +152,7 @@ class UCBOneExperiment(object):
 
 if __name__ == "__main__":
 
-    probas = [0.01, 0.08, 0.02, 0.05]
+    probas = [0.05, 0.33, 0.20, 0.10]
     max_trials = 10000
     ucb1_lab = UCBOneExperiment(machine_win_rates = probas)
     ucb1_lab.run_experiment(max_trials = max_trials, update_every = 1000)   

@@ -179,7 +179,7 @@ class EpsilonGreedyExperiment(object):
 
 if __name__ == "__main__":
 
-    probas = [0.2, 0.4, 0.8, 0.6]
+    probas = [0.05, 0.33, 0.20, 0.10]
     epsilon = 0.10
     max_trials = 10000
     epg_lab = EpsilonGreedyExperiment(machine_win_rates = probas, eps = epsilon)
